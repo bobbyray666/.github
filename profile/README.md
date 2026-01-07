@@ -1,9 +1,9 @@
-# Fleek
-
-## Coda: After the Model Boom
+### Coda: After the Model Boom
 
 The hard part of AI isn’t training anymore.  
 It’s running the thing — reliably, cheaply, and at scale.
+
+# Fleek
 
 Fleek is a developer platform for AI inference and model optimization, built for the phase where experiments turn into systems and latency starts to matter more than launch threads.
 
