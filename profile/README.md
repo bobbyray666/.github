@@ -23,6 +23,10 @@ We optimize models for the hardware they actually run on, enforce predictable ex
 
 The interface stays simple on purpose. Developers integrate through clean APIs while Fleek handles scheduling, scaling, and execution across optimized compute environments. Pricing follows usage, not capacity reservations, so iteration doesn’t require financial guesswork.
 
+## Under the hood
+
+Black-box infrastructure forces teams to guess at performance cliffs and rely on fragile scaling demos. We believe in observable, predictable systems. By exposing our core machinery at https://github.com/bobbyray666/Dao, you can inspect the execution layer that enforces these operational invariants, giving you confidence that your APIs will survive production.
+
 ## Fleek is for teams that care about
 
 - **Latency distributions**, not averages  

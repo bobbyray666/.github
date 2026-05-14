@@ -16,7 +16,7 @@ The README follows this pattern:
 1. **Epigraph** (`### Coda: After the Model Boom`) - Sets the thesis
 2. **Problem Definition** - Infrastructure gravity that teams lose time to
 3. **Core Value Propositions** - Three pillars (boring, lower latency, higher utilization)
-4. **Section Headers** with supporting details (`## Making inference boring`, `## Simple by design`, etc.)
+4. **Section Headers** with supporting details (`## Making inference boring`, `## Simple by design`, `## Under the hood`, etc.)
 5. **Target Audience** - Teams that care about specific outcomes (latency distributions, operational invariants, cost proportionality, APIs that survive production)
 6. **Call to Action** - Reference to https://www.fleek.sh
 
@@ -34,7 +34,7 @@ The README follows this pattern:
 - **Update links**: Keep https://www.fleek.sh and any external references current
 
 ## External References & Link Policy
-Currently, this repo contains only one external link: `https://www.fleek.sh`. When adding additional links, follow this hierarchy:
+Currently, this repo contains the external link `https://www.fleek.sh` and the GitHub implementation link `https://github.com/bobbyray666/Dao`. When adding additional links, follow this hierarchy:
 - **Primary**: https://www.fleek.sh (main landing)
 - **Product docs** (if established): Point to canonical documentation site
 - **GitHub**: Link to main Fleek repos only if showcasing implementation details
@@ -46,6 +46,7 @@ Currently, this repo contains only one external link: `https://www.fleek.sh`. Wh
 - This README is the **organization's face**—changes should align with overall messaging strategy
 - Before adding claims about product capabilities or performance, verify they're live
 - Document new sections in this `copilot-instructions.md` so future agents understand the rationale
+  - *Rationale for "Under the hood"*: Added to showcase the core machinery at `https://github.com/bobbyray666/Dao` and build trust with observable implementation details.
 
 ## Scope Boundaries
 This is **not** the place for:
