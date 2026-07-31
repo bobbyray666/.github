@@ -132,6 +132,8 @@ class TestMarkdown(unittest.TestCase):
         # Find markdown links: [text](url)
         # Note: can handle empty text like [](url) or full text
         link_re = re.compile(r'\[([^\]]*)\]\(([^)]+)\)')
+        # Compile regex outside of file loop to avoid redundant compilation
+        heading_finder = re.compile(r'^(#+)\s+(.+)$')
         strict_check = os.environ.get("STRICT_LINK_CHECK", "false").lower() == "true"
 
         for filepath in self.get_markdown_files():
@@ -141,7 +143,6 @@ class TestMarkdown(unittest.TestCase):
 
             # Find all headings to build valid slugs for anchor links
             headings = []
-            heading_finder = re.compile(r'^(#+)\s+(.+)$')
             for line in lines:
                 match = heading_finder.match(line.strip())
                 if match:
