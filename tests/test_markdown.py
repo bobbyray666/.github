@@ -3,6 +3,7 @@ import re
 import unittest
 import urllib.request
 from urllib.error import HTTPError, URLError
+from unittest.mock import patch, mock_open
 
 class TestMarkdown(unittest.TestCase):
     # Files to test
@@ -221,6 +222,34 @@ class TestMarkdown(unittest.TestCase):
                         os.path.exists(target_path),
                         f"Local link target '{url}' in {filepath} does not exist."
                     )
+
+    @patch('urllib.request.urlopen')
+    @patch('builtins.open', new_callable=mock_open, read_data="[example](https://example.com)")
+    @patch.dict(os.environ, {"STRICT_LINK_CHECK": "false"})
+    def test_markdown_links_http_error_warning(self, mock_file, mock_urlopen):
+        """Test HTTPError handling in non-strict mode (logs a warning)."""
+        from io import BytesIO
+        err = HTTPError("https://example.com", 404, "Not Found", {}, BytesIO(b""))
+        mock_urlopen.side_effect = err
+
+        with patch.object(self, 'get_markdown_files', return_value=["dummy.md"]):
+            with patch('builtins.print') as mock_print:
+                self.test_markdown_links()
+                mock_print.assert_any_call("WARNING: Link https://example.com in dummy.md failed with HTTP Error: 404 Not Found")
+
+    @patch('urllib.request.urlopen')
+    @patch('builtins.open', new_callable=mock_open, read_data="[example](https://example.com)")
+    @patch.dict(os.environ, {"STRICT_LINK_CHECK": "true"})
+    def test_markdown_links_http_error_strict(self, mock_file, mock_urlopen):
+        """Test HTTPError handling in strict mode (fails the test)."""
+        from io import BytesIO
+        err = HTTPError("https://example.com", 404, "Not Found", {}, BytesIO(b""))
+        mock_urlopen.side_effect = err
+
+        with patch.object(self, 'get_markdown_files', return_value=["dummy.md"]):
+            with self.assertRaises(AssertionError) as context:
+                self.test_markdown_links()
+            self.assertIn("Link https://example.com in dummy.md failed with HTTP Error: 404 Not Found", str(context.exception))
 
 if __name__ == '__main__':
     unittest.main()
