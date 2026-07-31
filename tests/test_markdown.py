@@ -140,12 +140,12 @@ class TestMarkdown(unittest.TestCase):
                 lines = content.splitlines()
 
             # Find all headings to build valid slugs for anchor links
-            headings = []
+            headings = set()
             heading_finder = re.compile(r'^(#+)\s+(.+)$')
             for line in lines:
                 match = heading_finder.match(line.strip())
                 if match:
-                    headings.append(self.slugify(match.group(2)))
+                    headings.add(self.slugify(match.group(2)))
 
             matches = link_re.findall(content)
             for text, url in matches:
