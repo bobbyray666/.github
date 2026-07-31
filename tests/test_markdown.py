@@ -30,6 +30,21 @@ class TestMarkdown(unittest.TestCase):
         slug = re.sub(r'-+', '-', slug)
         return slug.strip('-')
 
+    def _iter_non_code_block_lines(self, filepath):
+        """Yield (idx, stripped_line) for lines that are not inside a code block."""
+        with open(filepath, "r", encoding="utf-8") as f:
+            in_code_block = False
+            for idx, line in enumerate(f, 1):
+                stripped = line.strip()
+                if stripped.startswith("```"):
+                    in_code_block = not in_code_block
+                    continue
+
+                if in_code_block:
+                    continue
+
+                yield idx, stripped
+
     def test_file_ends_with_newline(self):
         """Ensure each markdown file ends with exactly one newline."""
         for filepath in self.get_markdown_files():
@@ -50,23 +65,13 @@ class TestMarkdown(unittest.TestCase):
         # e.g. '# Heading' is valid, '#Heading' is invalid
         heading_re = re.compile(r'^(#+)([^#\s].*)$')
         for filepath in self.get_markdown_files():
-            with open(filepath, "r", encoding="utf-8") as f:
-                in_code_block = False
-                for idx, line in enumerate(f, 1):
-                    stripped = line.strip()
-                    if stripped.startswith("```"):
-                        in_code_block = not in_code_block
-                        continue
-
-                    if in_code_block:
-                        continue
-
-                    match = heading_re.match(stripped)
-                    self.assertIsNone(
-                        match,
-                        f"Malformed heading in {filepath} at line {idx}: '{stripped}'. "
-                        f"Missing space after hash signs."
-                    )
+            for idx, stripped in self._iter_non_code_block_lines(filepath):
+                match = heading_re.match(stripped)
+                self.assertIsNone(
+                    match,
+                    f"Malformed heading in {filepath} at line {idx}: '{stripped}'. "
+                    f"Missing space after hash signs."
+                )
 
     def test_no_consecutive_blank_lines(self):
         """Ensure no more than one consecutive blank line is used."""
@@ -94,38 +99,28 @@ class TestMarkdown(unittest.TestCase):
         # Invalid: '-item' or '1.item'
         list_re = re.compile(r'^(\s*)([-*+]|\d+\.)([^\s].*)$')
         for filepath in self.get_markdown_files():
-            with open(filepath, "r", encoding="utf-8") as f:
-                in_code_block = False
-                for idx, line in enumerate(f, 1):
-                    stripped = line.strip()
-                    if stripped.startswith("```"):
-                        in_code_block = not in_code_block
+            for idx, stripped in self._iter_non_code_block_lines(filepath):
+                match = list_re.match(stripped)
+                if match:
+                    marker = match.group(2)
+                    rest = match.group(3)
+                    # Ensure it's not a horizontal rule like '---' or '***'
+                    if marker in ['-', '*'] and all(c == marker for c in rest):
+                        continue # Horizontal rule
+                    # Ensure it's not bold/italic like '**' or '***'
+                    if marker in ['-', '*'] and rest.startswith(marker):
+                        continue
+                    # If marker is '*' and rest contains any '*' (e.g. '*text*'), it is italic text, not a list item
+                    if marker == '*' and '*' in rest:
+                        continue
+                    # If marker is '-' and rest contains another '-' (e.g., command flag, strikethrough), skip
+                    if marker == '-' and '-' in rest:
                         continue
 
-                    if in_code_block:
-                        continue
-
-                    match = list_re.match(stripped)
-                    if match:
-                        marker = match.group(2)
-                        rest = match.group(3)
-                        # Ensure it's not a horizontal rule like '---' or '***'
-                        if marker in ['-', '*'] and all(c == marker for c in rest):
-                            continue # Horizontal rule
-                        # Ensure it's not bold/italic like '**' or '***'
-                        if marker in ['-', '*'] and rest.startswith(marker):
-                            continue
-                        # If marker is '*' and rest contains any '*' (e.g. '*text*'), it is italic text, not a list item
-                        if marker == '*' and '*' in rest:
-                            continue
-                        # If marker is '-' and rest contains another '-' (e.g., command flag, strikethrough), skip
-                        if marker == '-' and '-' in rest:
-                            continue
-
-                        self.fail(
-                            f"Malformed list item in {filepath} at line {idx}: '{stripped}'. "
-                            f"Missing space after list marker."
-                        )
+                    self.fail(
+                        f"Malformed list item in {filepath} at line {idx}: '{stripped}'. "
+                        f"Missing space after list marker."
+                    )
 
     def test_markdown_links(self):
         """Extract and verify all markdown links."""
