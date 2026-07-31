@@ -3,6 +3,7 @@ import re
 import unittest
 import urllib.request
 from urllib.error import HTTPError, URLError
+from unittest.mock import patch
 
 class TestMarkdown(unittest.TestCase):
     # Files to test
@@ -221,6 +222,67 @@ class TestMarkdown(unittest.TestCase):
                         os.path.exists(target_path),
                         f"Local link target '{url}' in {filepath} does not exist."
                     )
+
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="[Fleek](https://www.fleek.sh)\n")
+    @patch('tests.test_markdown.TestMarkdown.get_markdown_files', return_value=["dummy.md"])
+    @patch('urllib.request.urlopen')
+    def test_markdown_links_generic_exception_strict(self, mock_urlopen, mock_get_files, mock_file):
+        """Test that a generic Exception raises an AssertionError in strict mode."""
+        mock_urlopen.side_effect = Exception("Connection reset by peer")
+        with patch.dict(os.environ, {"STRICT_LINK_CHECK": "true"}):
+            with self.assertRaises(AssertionError) as context:
+                self.test_markdown_links()
+            self.assertIn("failed: Connection reset by peer", str(context.exception))
+
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="[Fleek](https://www.fleek.sh)\n")
+    @patch('tests.test_markdown.TestMarkdown.get_markdown_files', return_value=["dummy.md"])
+    @patch('urllib.request.urlopen')
+    def test_markdown_links_generic_exception_non_strict(self, mock_urlopen, mock_get_files, mock_file):
+        """Test that a generic Exception does not fail the test in non-strict mode."""
+        mock_urlopen.side_effect = Exception("Connection reset by peer")
+        with patch.dict(os.environ, {"STRICT_LINK_CHECK": "false"}):
+            # This should run without raising AssertionError
+            self.test_markdown_links()
+
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="[Fleek](https://www.fleek.sh)\n")
+    @patch('tests.test_markdown.TestMarkdown.get_markdown_files', return_value=["dummy.md"])
+    @patch('urllib.request.urlopen')
+    def test_markdown_links_http_error_strict(self, mock_urlopen, mock_get_files, mock_file):
+        """Test that an HTTPError raises an AssertionError in strict mode."""
+        mock_urlopen.side_effect = HTTPError('https://www.fleek.sh', 500, 'Internal Server Error', {}, None)
+        with patch.dict(os.environ, {"STRICT_LINK_CHECK": "true"}):
+            with self.assertRaises(AssertionError) as context:
+                self.test_markdown_links()
+            self.assertIn("failed with HTTP Error: 500 Internal Server Error", str(context.exception))
+
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="[Fleek](https://www.fleek.sh)\n")
+    @patch('tests.test_markdown.TestMarkdown.get_markdown_files', return_value=["dummy.md"])
+    @patch('urllib.request.urlopen')
+    def test_markdown_links_http_error_non_strict(self, mock_urlopen, mock_get_files, mock_file):
+        """Test that an HTTPError does not fail the test in non-strict mode."""
+        mock_urlopen.side_effect = HTTPError('https://www.fleek.sh', 500, 'Internal Server Error', {}, None)
+        with patch.dict(os.environ, {"STRICT_LINK_CHECK": "false"}):
+            self.test_markdown_links()
+
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="[Fleek](https://www.fleek.sh)\n")
+    @patch('tests.test_markdown.TestMarkdown.get_markdown_files', return_value=["dummy.md"])
+    @patch('urllib.request.urlopen')
+    def test_markdown_links_url_error_strict(self, mock_urlopen, mock_get_files, mock_file):
+        """Test that a URLError raises an AssertionError in strict mode."""
+        mock_urlopen.side_effect = URLError('Name or service not known')
+        with patch.dict(os.environ, {"STRICT_LINK_CHECK": "true"}):
+            with self.assertRaises(AssertionError) as context:
+                self.test_markdown_links()
+            self.assertIn("failed with URL Error: Name or service not known", str(context.exception))
+
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="[Fleek](https://www.fleek.sh)\n")
+    @patch('tests.test_markdown.TestMarkdown.get_markdown_files', return_value=["dummy.md"])
+    @patch('urllib.request.urlopen')
+    def test_markdown_links_url_error_non_strict(self, mock_urlopen, mock_get_files, mock_file):
+        """Test that a URLError does not fail the test in non-strict mode."""
+        mock_urlopen.side_effect = URLError('Name or service not known')
+        with patch.dict(os.environ, {"STRICT_LINK_CHECK": "false"}):
+            self.test_markdown_links()
 
 if __name__ == '__main__':
     unittest.main()
