@@ -3,6 +3,7 @@ import re
 import unittest
 import urllib.request
 from urllib.error import HTTPError, URLError
+from unittest.mock import patch, mock_open, MagicMock
 
 class TestMarkdown(unittest.TestCase):
     # Files to test
@@ -221,6 +222,26 @@ class TestMarkdown(unittest.TestCase):
                         os.path.exists(target_path),
                         f"Local link target '{url}' in {filepath} does not exist."
                     )
+
+    @patch('builtins.open', new_callable=mock_open, read_data="[link](https://invalid-url.com)")
+    @patch('urllib.request.urlopen')
+    @patch('builtins.print')
+    def test_markdown_links_url_error_non_strict(self, mock_print, mock_urlopen, mock_file):
+        with patch.object(self, 'get_markdown_files', return_value=["mock_file.md"]), \
+             patch('os.environ.get', side_effect=lambda key, default=None: "false" if key == "STRICT_LINK_CHECK" else default):
+            mock_urlopen.side_effect = URLError("connection timed out")
+            self.test_markdown_links()
+            mock_print.assert_any_call("WARNING: Link https://invalid-url.com in mock_file.md failed with URL Error: connection timed out")
+
+    @patch('builtins.open', new_callable=mock_open, read_data="[link](https://invalid-url.com)")
+    @patch('urllib.request.urlopen')
+    def test_markdown_links_url_error_strict(self, mock_urlopen, mock_file):
+        with patch.object(self, 'get_markdown_files', return_value=["mock_file.md"]), \
+             patch('os.environ.get', side_effect=lambda key, default=None: "true" if key == "STRICT_LINK_CHECK" else default):
+            mock_urlopen.side_effect = URLError("connection timed out")
+            with self.assertRaises(AssertionError) as context:
+                self.test_markdown_links()
+            self.assertIn("Link https://invalid-url.com in mock_file.md failed with URL Error: connection timed out", str(context.exception))
 
 if __name__ == '__main__':
     unittest.main()
