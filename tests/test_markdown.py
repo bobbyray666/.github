@@ -127,6 +127,79 @@ class TestMarkdown(unittest.TestCase):
                             f"Missing space after list marker."
                         )
 
+    def _extract_heading_slugs(self, lines):
+        """Find all headings in markdown lines and return their slugs."""
+        headings = []
+        heading_finder = re.compile(r'^(#+)\s+(.+)$')
+        for line in lines:
+            match = heading_finder.match(line.strip())
+            if match:
+                headings.append(self.slugify(match.group(2)))
+        return headings
+
+    def _validate_external_link(self, url, filepath, strict_check):
+        """Validate external HTTP/HTTPS link."""
+        if url in self.IGNORED_URLS:
+            print(f"Skipping ignored URL: {url}")
+            return
+
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'}
+            )
+            # We try to use a relatively short timeout
+            with urllib.request.urlopen(req, timeout=10) as response:
+                status = response.getcode()
+                if status not in [200, 201, 202, 203, 204]:
+                    msg = f"Link {url} in {filepath} returned unexpected status code {status}."
+                    if strict_check:
+                        self.fail(msg)
+                    else:
+                        print(f"WARNING: {msg}")
+        except HTTPError as e:
+            msg = f"Link {url} in {filepath} failed with HTTP Error: {e.code} {e.reason}"
+            if strict_check:
+                self.fail(msg)
+            else:
+                print(f"WARNING: {msg}")
+        except URLError as e:
+            msg = f"Link {url} in {filepath} failed with URL Error: {e.reason}"
+            if strict_check:
+                self.fail(msg)
+            else:
+                print(f"WARNING: {msg}")
+        except Exception as e:
+            msg = f"Link {url} in {filepath} failed: {str(e)}"
+            if strict_check:
+                self.fail(msg)
+            else:
+                print(f"WARNING: {msg}")
+
+    def _validate_anchor_link(self, url, filepath, headings):
+        """Validate anchor link within the same file."""
+        anchor = url[1:]
+        self.assertIn(
+            anchor,
+            headings,
+            f"Anchor link '{url}' in {filepath} does not match any heading slug in the file. "
+            f"Available slugs: {headings}"
+        )
+
+    def _validate_local_link(self, url, filepath):
+        """Validate local file or directory links."""
+        # Resolve path relative to markdown file directory
+        file_dir = os.path.dirname(filepath)
+        target_path = os.path.join(file_dir, url) if file_dir else url
+        # Strip any anchor reference from local file link, e.g. path/to/file.md#anchor
+        if "#" in target_path:
+            target_path = target_path.split("#")[0]
+
+        self.assertTrue(
+            os.path.exists(target_path),
+            f"Local link target '{url}' in {filepath} does not exist."
+        )
+
     def test_markdown_links(self):
         """Extract and verify all markdown links."""
         # Find markdown links: [text](url)
@@ -140,12 +213,7 @@ class TestMarkdown(unittest.TestCase):
                 lines = content.splitlines()
 
             # Find all headings to build valid slugs for anchor links
-            headings = []
-            heading_finder = re.compile(r'^(#+)\s+(.+)$')
-            for line in lines:
-                match = heading_finder.match(line.strip())
-                if match:
-                    headings.append(self.slugify(match.group(2)))
+            headings = self._extract_heading_slugs(lines)
 
             matches = link_re.findall(content)
             for text, url in matches:
@@ -160,67 +228,15 @@ class TestMarkdown(unittest.TestCase):
 
                 # Check 2: External HTTP/HTTPS Link
                 if url.startswith("http://") or url.startswith("https://"):
-                    if url in self.IGNORED_URLS:
-                        print(f"Skipping ignored URL: {url}")
-                        continue
-
-                    # Validate URL
-                    try:
-                        req = urllib.request.Request(
-                            url,
-                            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'}
-                        )
-                        # We try to use a relatively short timeout
-                        with urllib.request.urlopen(req, timeout=10) as response:
-                            status = response.getcode()
-                            if status not in [200, 201, 202, 203, 204]:
-                                msg = f"Link {url} in {filepath} returned unexpected status code {status}."
-                                if strict_check:
-                                    self.fail(msg)
-                                else:
-                                    print(f"WARNING: {msg}")
-                    except HTTPError as e:
-                        msg = f"Link {url} in {filepath} failed with HTTP Error: {e.code} {e.reason}"
-                        if strict_check:
-                            self.fail(msg)
-                        else:
-                            print(f"WARNING: {msg}")
-                    except URLError as e:
-                        msg = f"Link {url} in {filepath} failed with URL Error: {e.reason}"
-                        if strict_check:
-                            self.fail(msg)
-                        else:
-                            print(f"WARNING: {msg}")
-                    except Exception as e:
-                        msg = f"Link {url} in {filepath} failed: {str(e)}"
-                        if strict_check:
-                            self.fail(msg)
-                        else:
-                            print(f"WARNING: {msg}")
+                    self._validate_external_link(url, filepath, strict_check)
 
                 # Check 3: Anchor within the same file
                 elif url.startswith("#"):
-                    anchor = url[1:]
-                    self.assertIn(
-                        anchor,
-                        headings,
-                        f"Anchor link '{url}' in {filepath} does not match any heading slug in the file. "
-                        f"Available slugs: {headings}"
-                    )
+                    self._validate_anchor_link(url, filepath, headings)
 
                 # Check 4: Local file or directory links
                 else:
-                    # Resolve path relative to markdown file directory
-                    file_dir = os.path.dirname(filepath)
-                    target_path = os.path.join(file_dir, url) if file_dir else url
-                    # Strip any anchor reference from local file link, e.g. path/to/file.md#anchor
-                    if "#" in target_path:
-                        target_path = target_path.split("#")[0]
-
-                    self.assertTrue(
-                        os.path.exists(target_path),
-                        f"Local link target '{url}' in {filepath} does not exist."
-                    )
+                    self._validate_local_link(url, filepath)
 
 if __name__ == '__main__':
     unittest.main()
