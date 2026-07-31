@@ -267,5 +267,28 @@ class TestMarkdown(unittest.TestCase):
                 self.test_markdown_links()
             self.assertIn("Link https://example.com in dummy.md failed with HTTP Error: 404 Not Found", str(context.exception))
 
+    def test_slugify(self):
+        """Verify that slugify correctly converts heading text to markdown anchor slug."""
+        test_cases = [
+            ("Hello World", "hello-world"),
+            ("Hello  --  World", "hello-world"),
+            ("Hello, World!", "hello-world"),
+            ("Heading 1.2.3", "heading-123"),
+            ("HeLlO wOrLd", "hello-world"),
+            (" - Hello World - ", "hello-world"),
+            ("!!!", ""),
+            ("making-inference-boring", "making-inference-boring"),
+            ("under-the-hood", "under-the-hood"),
+            ("Coda: After the Model Boom", "coda-after-the-model-boom"),
+        ]
+        for input_text, expected_slug in test_cases:
+            with self.subTest(input_text=input_text):
+                actual_slug = self.slugify(input_text)
+                self.assertEqual(
+                    actual_slug,
+                    expected_slug,
+                    f"slugify('{input_text}') should be '{expected_slug}', but got '{actual_slug}'"
+                )
+
 if __name__ == '__main__':
     unittest.main()
