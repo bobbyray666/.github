@@ -14,6 +14,11 @@ class TestMarkdown(unittest.TestCase):
         "https://github.com/bobbyray666/Dao", # Known private or placeholder repository
     }
 
+    # Pre-compiled regex for slugify to prevent redundant parser and compilation overhead
+    _NON_ALPHANUMERIC_RE = re.compile(r'[^a-z0-9\s-]')
+    _WHITESPACE_RE = re.compile(r'\s+')
+    _MULTIPLE_HYPHENS_RE = re.compile(r'-+')
+
     def get_markdown_files(self):
         # Ensure we check existing files from our list
         existing_files = []
@@ -26,9 +31,9 @@ class TestMarkdown(unittest.TestCase):
         """Convert a heading text to a markdown anchor slug."""
         # Lowercase, replace non-alphanumeric with hyphen, strip multiple hyphens
         slug = text.lower()
-        slug = re.sub(r'[^a-z0-9\s-]', '', slug)
-        slug = re.sub(r'\s+', '-', slug)
-        slug = re.sub(r'-+', '-', slug)
+        slug = self._NON_ALPHANUMERIC_RE.sub('', slug)
+        slug = self._WHITESPACE_RE.sub('-', slug)
+        slug = self._MULTIPLE_HYPHENS_RE.sub('-', slug)
         return slug.strip('-')
 
     def test_file_ends_with_newline(self):

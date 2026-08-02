@@ -1,0 +1,3 @@
+## 2025-01-20 - Pre-compiling Regex in Tight Loops
+**Learning:** In Python, calling `re.sub(pattern, repl, string)` directly with a string pattern inside a tight loop causes the regex to be parsed and evaluated against the internal regex cache repeatedly, causing unnecessary CPU overhead. Even though Python caches a small number of recent patterns, explicitly pre-compiling them using `re.compile()` avoids the dictionary lookup in the cache and the function call overhead of the module-level methods.
+**Action:** Always pre-compile regular expressions using `re.compile()` and store them at the module or class level when they are going to be used repeatedly inside a loop (like `slugify` processing hundreds of markdown headings).
