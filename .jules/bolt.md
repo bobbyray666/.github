@@ -1,0 +1,3 @@
+## 2024-05-24 - Pre-compiling Regex in Test Loops
+**Learning:** Compiling regular expressions using `re.compile()` inside loops or functions that are called repeatedly during test execution (like formatting checks over many lines) introduces unnecessary parser and compilation CPU overhead, which slows down testing.
+**Action:** Extract regular expression compilations out of loops and file iteration blocks, placing them at the module or class level as constants, and use these pre-compiled regex objects for matching and substitution.
