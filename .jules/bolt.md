@@ -1,0 +1,3 @@
+## 2024-05-18 - Pre-compile Regex Patterns for Performance
+**Learning:** In Python test files traversing lines across multiple files (like `tests/test_markdown.py`), dynamically compiling regexes using inline string literals within loops (e.g., `re.sub` or `re.compile` called inside a line iteration) creates an unnecessary performance overhead due to redundant compilation and parser cache checking.
+**Action:** Always extract regex patterns and define them as pre-compiled class-level constants (e.g., `SLUG_NON_ALNUM_RE = re.compile(...)`) to initialize them once and eliminate parser-related CPU cycles during heavy text processing.
