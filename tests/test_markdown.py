@@ -14,6 +14,15 @@ class TestMarkdown(unittest.TestCase):
         "https://github.com/bobbyray666/Dao", # Known private or placeholder repository
     }
 
+    # Pre-compiled regular expressions for performance
+    _NON_ALPHANUM_RE = re.compile(r'[^a-z0-9\s-]')
+    _MULTI_SPACE_RE = re.compile(r'\s+')
+    _MULTI_HYPHEN_RE = re.compile(r'-+')
+    _HEADING_RE = re.compile(r'^(#+)([^#\s].*)$')
+    _LIST_RE = re.compile(r'^(\s*)([-*+]|\d+\.)([^\s].*)$')
+    _HEADING_FINDER_RE = re.compile(r'^(#+)\s+(.+)$')
+    _LINK_RE = re.compile(r'\[([^\]]*)\]\(([^)]+)\)')
+
     def get_markdown_files(self):
         # Ensure we check existing files from our list
         existing_files = []
@@ -26,9 +35,9 @@ class TestMarkdown(unittest.TestCase):
         """Convert a heading text to a markdown anchor slug."""
         # Lowercase, replace non-alphanumeric with hyphen, strip multiple hyphens
         slug = text.lower()
-        slug = re.sub(r'[^a-z0-9\s-]', '', slug)
-        slug = re.sub(r'\s+', '-', slug)
-        slug = re.sub(r'-+', '-', slug)
+        slug = self._NON_ALPHANUM_RE.sub('', slug)
+        slug = self._MULTI_SPACE_RE.sub('-', slug)
+        slug = self._MULTI_HYPHEN_RE.sub('-', slug)
         return slug.strip('-')
 
     def test_file_ends_with_newline(self):
@@ -49,7 +58,6 @@ class TestMarkdown(unittest.TestCase):
     def test_headings_format(self):
         """Ensure headings are properly formatted with a space after #."""
         # e.g. '# Heading' is valid, '#Heading' is invalid
-        heading_re = re.compile(r'^(#+)([^#\s].*)$')
         for filepath in self.get_markdown_files():
             with open(filepath, "r", encoding="utf-8") as f:
                 in_code_block = False
@@ -62,7 +70,7 @@ class TestMarkdown(unittest.TestCase):
                     if in_code_block:
                         continue
 
-                    match = heading_re.match(stripped)
+                    match = self._HEADING_RE.match(stripped)
                     self.assertIsNone(
                         match,
                         f"Malformed heading in {filepath} at line {idx}: '{stripped}'. "
@@ -93,7 +101,6 @@ class TestMarkdown(unittest.TestCase):
         """Ensure lists are properly formatted with space after the marker."""
         # E.g. '- item' or '* item' or '1. item'
         # Invalid: '-item' or '1.item'
-        list_re = re.compile(r'^(\s*)([-*+]|\d+\.)([^\s].*)$')
         for filepath in self.get_markdown_files():
             with open(filepath, "r", encoding="utf-8") as f:
                 in_code_block = False
@@ -106,7 +113,7 @@ class TestMarkdown(unittest.TestCase):
                     if in_code_block:
                         continue
 
-                    match = list_re.match(stripped)
+                    match = self._LIST_RE.match(stripped)
                     if match:
                         marker = match.group(2)
                         rest = match.group(3)
@@ -131,9 +138,8 @@ class TestMarkdown(unittest.TestCase):
     def _extract_heading_slugs(self, lines):
         """Find all headings in markdown lines and return their slugs."""
         headings = []
-        heading_finder = re.compile(r'^(#+)\s+(.+)$')
         for line in lines:
-            match = heading_finder.match(line.strip())
+            match = self._HEADING_FINDER_RE.match(line.strip())
             if match:
                 headings.append(self.slugify(match.group(2)))
         return headings
@@ -205,7 +211,6 @@ class TestMarkdown(unittest.TestCase):
         """Extract and verify all markdown links."""
         # Find markdown links: [text](url)
         # Note: can handle empty text like [](url) or full text
-        link_re = re.compile(r'\[([^\]]*)\]\(([^)]+)\)')
         strict_check = os.environ.get("STRICT_LINK_CHECK", "false").lower() == "true"
 
         for filepath in self.get_markdown_files():
@@ -216,7 +221,7 @@ class TestMarkdown(unittest.TestCase):
             # Find all headings to build valid slugs for anchor links
             headings = self._extract_heading_slugs(lines)
 
-            matches = link_re.findall(content)
+            matches = self._LINK_RE.findall(content)
             for text, url in matches:
                 url = url.strip()
                 text = text.strip()
