@@ -1,0 +1,3 @@
+## 2024-05-19 - Pre-compile Regex Outside of Iteration Blocks
+**Learning:** Initializing `re.compile` or executing `re.sub` inline with static regex strings within file parsing loops creates significant, redundant parser and compilation CPU overhead during iterations over large files or multiple items. Python's internal regex caching doesn't fully mitigate the overhead of redundant regex compilation calls when parsing multiple files with many lines.
+**Action:** Always declare regular expressions using `re.compile` outside of loops or file iteration blocks, ideally as class-level attributes or module-level constants, to prevent redundant CPU overhead during iterations.
