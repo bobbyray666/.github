@@ -1,0 +1,3 @@
+## 2024-05-15 - Regex Compilation Overhead
+**Learning:** In Python, repeatedly calling `re.sub()` or `re.match()` inside of iteration blocks or tight loops (like iterating over file lines or string formatting methods like `slugify` that are called per heading) incurs overhead because it internally looks up or caches the pattern each time. The internal cache is limited and repetitive dictionary lookups reduce performance.
+**Action:** Always compile regular expressions outside of loops, iteration blocks, or functions heavily invoked over collections. Store them as module-level constants or class variables using `re.compile()` and utilize their methods (e.g., `self.MY_REGEX.match(text)`) for measurable performance gains during text processing tasks.
