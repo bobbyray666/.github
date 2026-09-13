@@ -17,6 +17,7 @@ class TestMarkdown(unittest.TestCase):
     _RE_NON_ALNUM = re.compile(r'[^a-z0-9\s-]')
     _RE_SPACES = re.compile(r'\s+')
     _RE_HYPHENS = re.compile(r'-+')
+    _RE_HEADING_FINDER = re.compile(r'^(#+)\s+(.+)$')
 
     def get_markdown_files(self):
         # Ensure we check existing files from our list
@@ -134,12 +135,11 @@ class TestMarkdown(unittest.TestCase):
 
     def _extract_heading_slugs(self, lines):
         """Find all headings in markdown lines and return their slugs."""
-        headings = []
-        heading_finder = re.compile(r'^(#+)\s+(.+)$')
+        headings = set()
         for line in lines:
-            match = heading_finder.match(line.strip())
+            match = self._RE_HEADING_FINDER.match(line.strip())
             if match:
-                headings.append(self.slugify(match.group(2)))
+                headings.add(self.slugify(match.group(2)))
         return headings
 
     def _validate_external_link(self, url, filepath, strict_check):
