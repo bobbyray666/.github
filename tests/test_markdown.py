@@ -18,6 +18,9 @@ class TestMarkdown(unittest.TestCase):
     _RE_SPACES = re.compile(r'\s+')
     _RE_HYPHENS = re.compile(r'-+')
 
+    # ⚡ Bolt: Extracted heading_finder regex to class level to avoid redundant compilation during iterations
+    _RE_HEADING_FINDER = re.compile(r'^(#+)\s+(.+)$')
+
     def get_markdown_files(self):
         # Ensure we check existing files from our list
         existing_files = []
@@ -135,9 +138,8 @@ class TestMarkdown(unittest.TestCase):
     def _extract_heading_slugs(self, lines):
         """Find all headings in markdown lines and return their slugs."""
         headings = []
-        heading_finder = re.compile(r'^(#+)\s+(.+)$')
         for line in lines:
-            match = heading_finder.match(line.strip())
+            match = self._RE_HEADING_FINDER.match(line.strip())
             if match:
                 headings.append(self.slugify(match.group(2)))
         return headings
