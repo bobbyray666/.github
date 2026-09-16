@@ -218,7 +218,8 @@ class TestMarkdown(unittest.TestCase):
                 lines = content.splitlines()
 
             # Find all headings to build valid slugs for anchor links
-            headings = self._extract_heading_slugs(lines)
+            # Optimization: Use set for O(1) membership lookups during anchor validation
+            headings = set(self._extract_heading_slugs(lines))
 
             matches = link_re.findall(content)
             for text, url in matches:
