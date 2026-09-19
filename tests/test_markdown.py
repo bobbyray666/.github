@@ -220,6 +220,11 @@ class TestMarkdown(unittest.TestCase):
             # Find all headings to build valid slugs for anchor links
             headings = self._extract_heading_slugs(lines)
 
+            # ⚡ Bolt: Convert list to set for O(1) lookups inside the loop
+            # Why: Anchor validation performs a lookup for every anchor link.
+            # Impact: Reduces lookup complexity from O(N) to O(1), making overall validation O(N) instead of O(N^2).
+            headings_set = set(headings)
+
             matches = link_re.findall(content)
             for text, url in matches:
                 url = url.strip()
@@ -237,7 +242,7 @@ class TestMarkdown(unittest.TestCase):
 
                 # Check 3: Anchor within the same file
                 elif url.startswith("#"):
-                    self._validate_anchor_link(url, filepath, headings)
+                    self._validate_anchor_link(url, filepath, headings_set)
 
                 # Check 4: Local file or directory links
                 else:
