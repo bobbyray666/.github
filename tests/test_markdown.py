@@ -17,6 +17,7 @@ class TestMarkdown(unittest.TestCase):
     _RE_NON_ALNUM = re.compile(r'[^a-z0-9\s-]')
     _RE_SPACES = re.compile(r'\s+')
     _RE_HYPHENS = re.compile(r'-+')
+    _RE_HEADING_FINDER = re.compile(r'^(#+)\s+(.+)$')
 
     def get_markdown_files(self):
         # Ensure we check existing files from our list
@@ -134,10 +135,10 @@ class TestMarkdown(unittest.TestCase):
 
     def _extract_heading_slugs(self, lines):
         """Find all headings in markdown lines and return their slugs."""
+        # ⚡ Bolt Optimization: Pre-compile regex to prevent redundant compilation CPU overhead
         headings = []
-        heading_finder = re.compile(r'^(#+)\s+(.+)$')
         for line in lines:
-            match = heading_finder.match(line.strip())
+            match = self._RE_HEADING_FINDER.match(line.strip())
             if match:
                 headings.append(self.slugify(match.group(2)))
         return headings
@@ -181,14 +182,14 @@ class TestMarkdown(unittest.TestCase):
             else:
                 print(f"WARNING: {msg}")
 
-    def _validate_anchor_link(self, url, filepath, headings):
+    def _validate_anchor_link(self, url, filepath, headings_set, original_headings=None):
         """Validate anchor link within the same file."""
         anchor = url[1:]
         self.assertIn(
             anchor,
-            headings,
+            headings_set,
             f"Anchor link '{url}' in {filepath} does not match any heading slug in the file. "
-            f"Available slugs: {headings}"
+            f"Available slugs: {original_headings if original_headings is not None else headings_set}"
         )
 
     def _validate_local_link(self, url, filepath):
@@ -219,6 +220,8 @@ class TestMarkdown(unittest.TestCase):
 
             # Find all headings to build valid slugs for anchor links
             headings = self._extract_heading_slugs(lines)
+            # ⚡ Bolt Optimization: Initialize the collection as a set rather than a list to reduce lookup time complexity from O(N) to O(1) constant time
+            headings_set = set(headings)
 
             matches = link_re.findall(content)
             for text, url in matches:
@@ -237,7 +240,8 @@ class TestMarkdown(unittest.TestCase):
 
                 # Check 3: Anchor within the same file
                 elif url.startswith("#"):
-                    self._validate_anchor_link(url, filepath, headings)
+                    # Pass headings_set for O(1) lookup, and headings for the error message
+                    self._validate_anchor_link(url, filepath, headings_set, headings)
 
                 # Check 4: Local file or directory links
                 else:
