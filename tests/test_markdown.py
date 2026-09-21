@@ -220,6 +220,9 @@ class TestMarkdown(unittest.TestCase):
             # Find all headings to build valid slugs for anchor links
             headings = self._extract_heading_slugs(lines)
 
+            # O(1) lookup: Convert to set to avoid O(N^2) lookup complexity for anchor checks
+            headings_set = set(headings)
+
             matches = link_re.findall(content)
             for text, url in matches:
                 url = url.strip()
@@ -237,7 +240,7 @@ class TestMarkdown(unittest.TestCase):
 
                 # Check 3: Anchor within the same file
                 elif url.startswith("#"):
-                    self._validate_anchor_link(url, filepath, headings)
+                    self._validate_anchor_link(url, filepath, headings_set)
 
                 # Check 4: Local file or directory links
                 else:
