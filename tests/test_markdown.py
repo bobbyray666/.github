@@ -220,6 +220,11 @@ class TestMarkdown(unittest.TestCase):
             # Find all headings to build valid slugs for anchor links
             headings = self._extract_heading_slugs(lines)
 
+            # Bolt: Optimize by converting headings list to a set.
+            # Why: Reduces O(N) list search time inside _validate_anchor_link down to O(1) constant time set lookup.
+            # Impact: Speeds up anchor validations, especially as the number of headings and links grows. Avoids O(N^2) overhead loop pattern.
+            headings_set = set(headings)
+
             matches = link_re.findall(content)
             for text, url in matches:
                 url = url.strip()
@@ -237,7 +242,7 @@ class TestMarkdown(unittest.TestCase):
 
                 # Check 3: Anchor within the same file
                 elif url.startswith("#"):
-                    self._validate_anchor_link(url, filepath, headings)
+                    self._validate_anchor_link(url, filepath, headings_set)
 
                 # Check 4: Local file or directory links
                 else:
