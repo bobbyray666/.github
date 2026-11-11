@@ -212,6 +212,11 @@ class TestMarkdown(unittest.TestCase):
         link_re = re.compile(r'\[([^\]]*)\]\(([^)]+)\)')
         strict_check = os.environ.get("STRICT_LINK_CHECK", "false").lower() == "true"
 
+        # Bolt: Optimize by caching checked external URLs.
+        # Why: Prevents redundant HTTP requests for the same URL across multiple links.
+        # Impact: Reduces test execution time and avoids unnecessary network I/O.
+        checked_external_urls = set()
+
         for filepath in self.get_markdown_files():
             with open(filepath, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -238,7 +243,9 @@ class TestMarkdown(unittest.TestCase):
 
                 # Check 2: External HTTP/HTTPS Link
                 if url.startswith("http://") or url.startswith("https://"):
-                    self._validate_external_link(url, filepath, strict_check)
+                    if url not in checked_external_urls:
+                        self._validate_external_link(url, filepath, strict_check)
+                        checked_external_urls.add(url)
 
                 # Check 3: Anchor within the same file
                 elif url.startswith("#"):
